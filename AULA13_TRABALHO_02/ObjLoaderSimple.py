@@ -47,6 +47,17 @@ class ObjLoaderSimple:
                     u, v = map(float, parts[1:3])
                     uvs.append([u, v])
 
+                
+                # --- Leitura e ajuste de índices de face ---
+                # Este trecho processa cada linha de face ('f') do arquivo OBJ,
+                # que vem no formato "i/j/k" para cada vértice do triângulo:
+                #   i = índice de vértice (posição)
+                #   j = índice de coordenada de textura (UV)
+                #   k = índice de normal (não usado aqui)
+                # Para cada "i/j", convertemos de 1-based (OBJ) para 0-based (Python):
+                #   vi = int(i) - 1  → posição correta em vertices[vi]
+                #   ti = int(j) - 1  → posição correta em uvs[ti] (ou None se não existir)
+                # O par (vi, ti) é então armazenado em `faces` para montar o buffer de vértices.
                 # Interpreta faces (somente os índices de vértice e UV)
                 elif parts[0] == 'f':
                     # Cada face no OBJ é definida por três vértices no formato "i/j/k"
@@ -59,13 +70,13 @@ class ObjLoaderSimple:
                         # ----------------------------
                         # Índice de vértice (vi):
                         # vals[0] é a parte antes da primeira "/", ex: "12".
-                        # Convertemos para inteiro e subtraímos 1 porque o OBJ é 1-based.
+                        # Convertemos para inteiro e subtraímos 1 porque o OBJ é 1-based (indice começa em 1) e em python os indices começam em zero.
                         # Assim, vi aponta para vertices[vi].
                         #ex: v  a   b   c       ← vértice 12, fica: vi = int("12") - 1  # vi = 11
                         vi = int(vals[0]) - 1  
 
                         # ----------------------------
-                        # Índice de UV (ti):
+                        # Índice de UV (ti) texturas:
                         # Se houver uma segunda parte (vals[1]) e ela não estiver vazia,
                         # convertemos para inteiro e subtraímos 1 (também 1-based → 0-based).
                         # Caso contrário, marcamos ti como None (sem textura).
@@ -75,9 +86,9 @@ class ObjLoaderSimple:
                             ti = None
 
                         # Adiciona ao array de faces o par (índice de vértice, índice de UV)
-                        faces.append((vi, ti))
+                        faces.append((vi, ti))  #[x, y, z, u, v]
 
-        # Monta o buffer intercalado [x, y, z, u, v] para cada face
+        #------- Monta o buffer intercalado [x, y, z, u, v] para cada face-----
         buffer = []
         for vi, ti in faces:
             # Adiciona posição do vértice
@@ -92,6 +103,6 @@ class ObjLoaderSimple:
 
         # Converte para numpy float32 e calcula número de vértices
         vertex_buffer = np.array(buffer, dtype=np.float32)
-        num_vertices  = vertex_buffer.size // 5  # 5 componentes por vértice
+        num_vertices  = vertex_buffer.size // 5  # 5 componentes por vértice O operador // faz divisão inteira, ou seja, sempre retorna um número inteiro (no exemplo 500 // 5 dá 100, sem casas decimais).
 
         return vertex_buffer, num_vertices
