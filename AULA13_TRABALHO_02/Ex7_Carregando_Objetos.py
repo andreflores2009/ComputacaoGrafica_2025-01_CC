@@ -149,9 +149,24 @@ def inicializa_objeto():
 def inicializa_shaders():
     """
     Cria, compila e linka vertex e fragment shader simplificados:
-    - Vertex shader passa posição e UV ao fragment shader.
-    - Fragment shader apenas amostra a textura.
+    - Vertex shader recebe:
+        • layout(location = 0) in vec3 in_pos;    → atributo de posição do vértice (x,y,z)
+        • layout(location = 1) in vec2 in_uv;     → atributo de coordenada de textura (u,v)
+        • uniform mat4 model;                     → matriz de modelo (transformação local do objeto)
+        • uniform mat4 view;                      → matriz de visualização (posição/orientação da câmera)
+        • uniform mat4 projection;                → matriz de projeção (perspectiva)
+      e repassa in_uv para o fragment shader em out vec2 frag_uv.
+
+    - Fragment shader recebe:
+        • in vec2 frag_uv;                        → UV interpolada do vertex shader
+        • uniform sampler2D texture1;             → sampler que indica a textura vinculada ao texture unit 0
+      e gera a cor final em out vec4 FragColor.
+
+    Após definir as fontes, compilamos e linkamos:
+    - compileShader(source, type): compila um shader de tipo GL_VERTEX_SHADER ou GL_FRAGMENT_SHADER.
+    - compileProgram(vs, fs): linka os shaders compilados em um programa executável pelo glUseProgram.
     """
+    
     global Shader_programm
 
     vertex_src = """#version 400
@@ -192,7 +207,14 @@ def render_loop():
     - Renderiza objeto via glDrawArrays
     """
 
-     # Matriz de modelo fixa
+    # Inicializa a matriz de modelo como IDENTIDADE:
+    # - A matriz identidade é o “elemento neutro” das transformações,
+    #   ou seja, não altera posição, rotação ou escala do objeto.
+    # - A partir dela, aplicamos translações, rotações ou escalas
+    #   usando multiplcações ou substituições.
+    # - Se fosse uma matriz de zeros, todas as coordenadas seriam zeradas
+    #   e o objeto não apareceria na cena
+    # Matriz de modelo fixa
     model = pyrr.matrix44.create_identity(dtype=np.float32)
 
     # Tempo da frame anterior
